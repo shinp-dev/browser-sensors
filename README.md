@@ -1,45 +1,77 @@
-# ブラウザ センサーラボ (Browser Sensor Lab)
+# Browser Sensor Lab
 
-ブラウザやデバイスが持つ各種API機能（センサー類）をテストできるWebアプリケーションです。
+ブラウザや端末がWebへ公開しているセンサー / ハードウェアAPIを診断する静的Webアプリです。
 
-## 主な機能
+「対応APIだけを試すデモ」ではなく、**この端末 × このブラウザで何が見える／見えないか**を確認することを目的にしています。APIが存在しない場合も `ブラウザ非対応` として表示し、それ自体を診断結果として扱います。
 
-ブラウザ上で以下のセンサーやデバイスAPIの動作確認を行うことができます。各機能のStart/Stopを個別に制御できます。
+## 主な診断対象
 
-- **カメラ (Camera)**: ビデオストリームの取得
-- **マイク (Microphone)**: 音声ストリームと音量レベルの取得
-- **位置情報 (Geolocation)**: 緯度・経度、方角、速度の取得
-- **加速度・ジャイロ (Device Motion/Orientation)**: デバイスの傾きや動きの取得
-- **画面共有 (Screen Capture)**: デスクトップやウィンドウのキャプチャ（PCブラウザ向け）
-- **ネットワーク情報 (Network Information)**: 回線種別（4G, Wi-Fiなど）の取得
-- **外部デバイスAPI**: その他、実験的なAPIなどのテスト用
+### 本体センサー / 端末情報
 
-## 動かし方
+- Geolocation
+- DeviceOrientationEvent / DeviceMotionEvent
+- Generic Sensor API
+  - Accelerometer
+  - LinearAccelerationSensor
+  - GravitySensor
+  - Gyroscope
+  - Magnetometer
+  - AbsoluteOrientationSensor
+  - RelativeOrientationSensor
+  - AmbientLightSensor
+- Screen Orientation
+- Device Posture（折りたたみ端末）
+- Pointer / Touch / maxTouchPoints
+- Camera / Microphone
+- MediaDevices.enumerateDevices()
+- InputDeviceInfo.getCapabilities()
+- Battery Status
+- Network Information
+- Hardware / Screen information
+- Vibration
+- Screen Wake Lock
+- Speech Recognition
+- Screen Capture
 
-本プロジェクトは静的なHTML/CSS/JavaScriptで構成されています。
-リポジトリをクローンして、ローカルで確認するか、GitHub Pagesなどでホスティングして利用することができます。
+### 外部デバイスAPI
+
+- Web Bluetooth
+- WebUSB
+- Web Serial
+- Web NFC (NDEF)
+- WebHID
+- Gamepad API
+- Web MIDI
+
+## 表示の考え方
+
+- **ブラウザ非対応**: APIの入口そのものが公開されていない
+- **API対応**: APIの入口は存在する
+- **取得中 / 接続中**: 実データ取得または接続に成功
+- **取得エラー**: APIは存在するが、権限・HTTPS・Permissions Policy・OS制限・対象ハードウェア不足等で利用できない
+
+APIの存在と、実際にデータを取得できることは別物として扱います。
+
+## ローカル実行
+
+一部APIはHTTPSまたはlocalhostでのみ利用できます。
 
 ```bash
-# リポジトリのクローン
-git clone <repository-url>
+git clone https://github.com/shinp-dev/browser-sensors.git
 cd browser-sensors
-
-# ローカルサーバーの起動 (例: Pythonを使用する場合)
 python3 -m http.server 8000
 ```
-または、VS Codeの拡張機能「Live Server」などで `index.html` を開いてください。
 
-> [!NOTE]
-> 一部のAPI（カメラ、マイク、位置情報など）は、セキュリティ上の理由から **HTTPS環境** または **localhost** でのみ動作します。
+`http://localhost:8000/` をブラウザで開いてください。
 
-## よくある質問 (FAQ)
+## プライバシー
 
-- **Q. 位置情報の「方角」や「速度」が「不明」になる**
-  A. GPSの移動履歴から算出されるため、立ち止まっている状態では計算不能（null）となります。移動しながらテストすると数値が表示されます。
-- **Q. スマホで「画面共有」が「非対応」になる**
-  A. モバイルブラウザ（iOS Safari / Android Chromeなど）では、OSレベルで画面録画・共有機能がブロックされています。PCブラウザからお試しください。
-- **Q. プライバシーについて（取得したデータは送信されますか？）**
-  A. 一切送信されません。このアプリは完全にブラウザ内（フロントエンド）のみで動作しており、外部サーバー等にデータを保存・送信する機能はありません。
+カメラ映像・位置情報・センサー値を、このサイト独自のバックエンドへ保存・送信する処理はありません。
+
+ただし以下には注意してください。
+
+- Speech Recognition はブラウザ実装によって音声が外部の音声認識サービスへ送信される場合があります。
+- ブラウザ / OS / Web API自身の実装による通信までは、このアプリから制御できません。
 
 ## ライセンス
 
