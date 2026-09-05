@@ -13,7 +13,7 @@
     <div id="app">
         <header>
             <h1>External Device APIs</h1>
-            <p>このブラウザから外部デバイスへ、どのWeb APIでアクセスできるかを診断します。</p>
+            <p>このブラウザから外部デバイスへ、どのWeb APIでアクセスできるかを診断します。外部機器が必要なAPIは「API対応」と「実機で動いた」を分けて表示します。</p>
             <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <button id="btn-help" class="btn btn-help"
                     style="width: auto; font-size: 0.85rem; padding: 0.5rem 1rem;">使い方・よくある質問</button>
@@ -40,6 +40,9 @@
                 <div class="modal-body">
                     <h3>Q. 非対応のAPIが多い</h3>
                     <p>A. 正常です。Web Bluetooth / WebUSB / Web Serial / Web NFC / WebHID / Gamepad / Web MIDIなどはブラウザやOSによって対応状況が大きく異なります。この差を見ること自体がこのページの目的です。</p>
+
+                    <h3>Q. 「API対応」なら実際に使える？</h3>
+                    <p>A. 外部デバイスAPIは相手となる機器が必要です。そのためAPIの入口があることと、実機との接続・通信が成功することを分けて扱います。対応機器がある場合は可能な範囲で実接続まで試します。</p>
 
                     <h3>Q. Bluetoothで心当たりのないデバイスが表示される</h3>
                     <p>A. BLE対応機器が周囲に多数ある場合があります。ブラウザはユーザーが選択したデバイスだけにアクセスを許可します。</p>
