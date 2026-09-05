@@ -4,6 +4,8 @@
 
 「対応APIだけを試すデモ」ではなく、**この端末 × このブラウザで何が見える／見えないか**を確認することを目的にしています。APIが存在しない場合も `ブラウザ非対応` として表示し、それ自体を診断結果として扱います。
 
+基本方針は、**相手となる外部機器が不要なAPIは、存在確認だけで終わらせず可能な範囲で実データ取得まで試す**ことです。Bluetooth / USB / Serial / NFC / HID / MIDI / Gamepadなど、相手となる機器が必要なAPIは「APIの有無」と「実機で動作したか」を分けて扱います。
+
 ## 主な診断対象
 
 ### 本体センサー / 端末情報
@@ -24,7 +26,7 @@
 - Pointer / Touch / maxTouchPoints
 - Camera / Microphone
 - MediaDevices.enumerateDevices()
-- InputDeviceInfo.getCapabilities()
+- MediaStreamTrack.getSettings() / getCapabilities()
 - Battery Status
 - Network Information
 - Hardware / Screen information
@@ -46,11 +48,18 @@
 ## 表示の考え方
 
 - **ブラウザ非対応**: APIの入口そのものが公開されていない
-- **API対応**: APIの入口は存在する
-- **取得中 / 接続中**: 実データ取得または接続に成功
-- **取得エラー**: APIは存在するが、権限・HTTPS・Permissions Policy・OS制限・対象ハードウェア不足等で利用できない
+- **API対応・未確認**: APIの入口は存在するが、まだ実データ取得を試していない
+- **データ待ち**: API開始には成功し、最初の実データを待っている
+- **動作確認済**: 実データを1回以上取得できた
+- **一部確認**: 複数対象のうち一部だけ実動作を確認できた
+- **取得不可 / 取得エラー**: APIは存在するが、権限・HTTPS・Permissions Policy・OS制限・対象ハードウェア不足等で利用できない
+- **API対応・実機必要**: APIは存在するが、動作確認に別の外部機器が必要
 
 APIの存在と、実際にデータを取得できることは別物として扱います。
+
+### カメラ / マイク実機診断
+
+カメラとマイクは `getUserMedia()` で実際に一時起動し、取得できた `MediaStreamTrack` の `getSettings()` / `getCapabilities()` を表示したあと、診断用ストリームをすぐ停止します。片方だけ成功した場合は `一部確認` と表示します。
 
 ## ローカル実行
 
