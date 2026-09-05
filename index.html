@@ -5,17 +5,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ブラウザ センサーラボ</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/webp" href="./assets/icon.webp">
   <link rel="stylesheet" href="./src/style.css?v=3">
+  <link rel="stylesheet" href="./src/diagnostics.css?v=1">
 </head>
 
 <body>
   <div id="app">
     <header>
       <h1>Browser Sensor Lab</h1>
-      <p>ブラウザやデバイスが持つAPI機能（センサー類）をテストできます。</p>
+      <p>この端末・このブラウザから、Web APIで何が見える／見えないかを診断します。</p>
+      <div id="capability-summary" class="capability-summary" aria-live="polite"></div>
       <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
         <button id="btn-help" class="btn btn-help"
           style="width: auto; font-size: 0.85rem; padding: 0.5rem 1rem;">使い方・よくある質問</button>
@@ -25,7 +25,7 @@
       </div>
       <div id="compatibility-alert"
         style="display: none; background: rgba(255,51,102,0.1); border: 1px solid var(--error); padding: 1rem; border-radius: 8px; margin-top: 1.5rem; color: #ff99aa;">
-        一部の機能は、このブラウザでサポートされていないか、HTTPS環境でのみ動作します。
+        一部の機能はこのブラウザで非対応です。非対応表示も、この端末・ブラウザの診断結果です。
       </div>
     </header>
 
@@ -33,37 +33,48 @@
       <!-- Sensor cards will be injected here via JS -->
     </main>
 
-    <!-- Help Modal Overlay -->
-    <div id="help-modal" class="modal-overlay">
+    <div id="help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-title">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>よくある質問 (FAQ)</h2>
-          <button id="btn-close-help" class="modal-close">&times;</button>
+          <h2 id="help-title">よくある質問 (FAQ)</h2>
+          <button id="btn-close-help" class="modal-close" aria-label="閉じる">&times;</button>
         </div>
         <div class="modal-body">
+          <h3>Q. どこまでを診断対象にしていますか？</h3>
+          <p>A. 追加の解析ライブラリやAIモデルを使わず、ブラウザ / OS がWeb APIとして直接公開している端末能力を対象にしています。本体センサー、端末能力、外部デバイスAPIの3系統です。MediaPipe、TensorFlow.js、ONNX Runtime Webなどでカメラ映像を二次解析して得る能力は対象外です。</p>
+
+          <h3>Q. 「非対応」と表示される機能が多い</h3>
+          <p>A. 正常です。このサイトは対応APIだけを見せるデモではなく、この端末・ブラウザがWebへ何を公開しているかを確認する診断ツールです。対応率が低い実験的APIも意図的に表示しています。</p>
+
+          <h3>Q. 「API対応」と「動作確認済」は何が違う？</h3>
+          <p>A. 「API対応」はブラウザにAPIの入口がある状態です。「動作確認済」は開始後に実際のセンサー値やカメラ・マイクのMediaStreamTrackなどを取得できた状態です。外部機器が不要な機能は、可能な限り実データ取得まで試します。</p>
+
+          <h3>Q. API対応なのに開始するとエラーになる</h3>
+          <p>A. APIの入口が存在することと、実データを取得できることは別です。権限、HTTPS、端末ハードウェア、OS制限、Permissions Policyなどによって取得できない場合があります。</p>
+
+          <h3>Q. カメラ / マイク実機診断は何をする？</h3>
+          <p>A. カメラとマイクをそれぞれ一時的に起動し、実際にMediaStreamTrackを取得してSettings / Capabilitiesを表示したあと、診断用ストリームをすぐ停止します。</p>
+
           <h3>Q. 位置情報の「方角」や「速度」が「不明」になる</h3>
-          <p>A. これらはGPSの移動履歴から算出されるため、**立ち止まっている状態（部屋の中など）では計算不能（null）**となります。外で歩いたり乗り物に乗って移動しながらテストすると数値が表示されます。</p>
+          <p>A. GPSや端末の測位状態によって値が取得できない場合があります。移動しながら測定すると取得できる場合があります。</p>
 
           <h3>Q. スマホで「画面共有」が「非対応」になる</h3>
-          <p>A. iOS (Safari) や Android (Chrome)
-            などのモバイルブラウザでは、セキュリティ上の理由から**ウェブサイトがスマホ全体の画面を録画・共有する機能をOSレベルでブロック**しています。PCのブラウザから開くとテスト可能です。</p>
-
-          <h3>Q. 「ネットワーク情報」の速度がリアルタイムに変わらない</h3>
-          <p>A. このアプリでは実際にデータをダウンロードして速度を測るパケットテストは行っていません。OSがブラウザに「今繋がっている回線の大まかな種別（4G, 5G,
-            Wi-Fi等）」を自己申告するAPIを利用しているため、緩やかにしか更新されません。</p>
+          <p>A. モバイルブラウザでは getDisplayMedia() が公開されていない場合があります。その場合も非対応として診断結果に残します。</p>
 
           <h3>Q. 取得したデータはどこかに送信されますか？</h3>
-          <p>A. **一切送信されません**。このアプリは完全にあなたのブラウザ内（フロントエンド）のみで動作しており、カメラ映像や位置情報データ等を外部のサーバー等に保存する機能はありません。</p>
+          <p>A. カメラ映像・位置情報・各種センサー値を、このサイト独自のバックエンドへ保存・送信する処理はありません。ただし Speech Recognition はブラウザ実装によって音声が外部の音声認識サービスへ送信される場合があります。</p>
         </div>
       </div>
     </div>
 
     <footer>
-      <p>ブラウザおよび各種デバイスAPIのテスト用に構築されています</p>
+      <p>ブラウザおよび各種デバイスAPIの診断用に構築されています</p>
     </footer>
   </div>
 
   <script src="./src/main.js?v=3"></script>
+  <script src="./src/diagnostics.js?v=1"></script>
+  <script src="./src/categories.js?v=1"></script>
 </body>
 
 </html>

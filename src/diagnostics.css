@@ -1,0 +1,16 @@
+body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.capability-summary { margin: 1.25rem auto 0; max-width: 760px; padding: 1rem; border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,.04); }
+.capability-summary strong { color: var(--primary); font-size: 1.15rem; margin-right: .35rem; }
+.capability-summary span, .capability-summary small { display: block; color: var(--text-muted); margin-top: .35rem; }
+.capability-summary small { line-height: 1.6; margin-top: .65rem; }
+.experimental-flag { display: inline-block; margin-top: .5rem; padding: .15rem .45rem; border: 1px solid rgba(255,204,102,.35); border-radius: 999px; color: #ffcc66; font-size: .72rem; }
+.diagnostic-card.unsupported { opacity: .7; border-color: rgba(255,51,102,.4); }
+.diagnostic-card.unsupported .status-badge { color: var(--error); background: rgba(255,51,102,.1); }
+.grid-container { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.category-heading { grid-column: 1 / -1; margin: 1.25rem 0 -.25rem; padding-top: .75rem; border-top: 1px solid var(--card-border); }
+.category-heading:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.category-heading h2 { margin: 0; font-size: 1.25rem; color: var(--primary); }
+.category-heading p { margin: .35rem 0 0; color: var(--text-muted); line-height: 1.6; }
+.card-content { word-break: break-word; }
+.card-content pre { overflow-wrap: anywhere; }
+@media (max-width: 600px) { #app { padding: 1rem; } .card-header { flex-direction: column; gap: .6rem; } .status-badge { align-self: flex-start; } }
