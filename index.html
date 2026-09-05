@@ -39,6 +39,9 @@
           <button id="btn-close-help" class="modal-close" aria-label="閉じる">&times;</button>
         </div>
         <div class="modal-body">
+          <h3>Q. どこまでを診断対象にしていますか？</h3>
+          <p>A. 追加の解析ライブラリやAIモデルを使わず、ブラウザ / OS がWeb APIとして直接公開している端末能力を対象にしています。本体センサー、端末能力、外部デバイスAPIの3系統です。MediaPipe、TensorFlow.js、ONNX Runtime Webなどでカメラ映像を二次解析して得る能力は対象外です。</p>
+
           <h3>Q. 「非対応」と表示される機能が多い</h3>
           <p>A. 正常です。このサイトは対応APIだけを見せるデモではなく、この端末・ブラウザがWebへ何を公開しているかを確認する診断ツールです。対応率が低い実験的APIも意図的に表示しています。</p>
 
@@ -70,6 +73,7 @@
 
   <script src="./src/main.js?v=3"></script>
   <script src="./src/diagnostics.js?v=1"></script>
+  <script src="./src/categories.js?v=1"></script>
 </body>
 
 </html>
