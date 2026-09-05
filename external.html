@@ -5,27 +5,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>外部デバイスAPI - センサーラボ</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./src/style.css?v=3">
+    <link rel="stylesheet" href="./src/diagnostics.css?v=1">
 </head>
 
 <body>
     <div id="app">
         <header>
             <h1>External Device APIs</h1>
-            <p>ブラウザから外の世界（周辺機器）と繋がる強力なWeb APIをテストできます。</p>
+            <p>このブラウザから外部デバイスへ、どのWeb APIでアクセスできるかを診断します。</p>
             <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <button id="btn-help" class="btn btn-help"
                     style="width: auto; font-size: 0.85rem; padding: 0.5rem 1rem;">使い方・よくある質問</button>
                 <a href="index.html" class="btn"
                     style="width: auto; font-size: 0.85rem; padding: 0.5rem 1rem; text-decoration: none; display: inline-block;">⬅
-                    組み込みセンサーに戻る</a>
+                    本体センサーに戻る</a>
             </div>
             <div id="compatibility-alert"
                 style="display: none; background: rgba(255,51,102,0.1); border: 1px solid var(--error); padding: 1rem; border-radius: 8px; margin-top: 1.5rem; color: #ff99aa;">
-                一部の機能は、このブラウザでサポートされていないか、HTTPS環境でのみ動作します。
+                一部の外部デバイスAPIは、このブラウザで非対応です。非対応表示も診断結果です。
             </div>
         </header>
 
@@ -33,37 +31,35 @@
             <!-- Sensor cards will be injected here via JS -->
         </main>
 
-        <!-- Help Modal Overlay -->
-        <div id="help-modal" class="modal-overlay">
+        <div id="help-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-title">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>よくある質問 (FAQ)</h2>
-                    <button id="btn-close-help" class="modal-close">&times;</button>
+                    <h2 id="help-title">よくある質問 (FAQ)</h2>
+                    <button id="btn-close-help" class="modal-close" aria-label="閉じる">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <h3>Q. Bluetoothで心当たりのないデバイスがたくさん表示される</h3>
-                    <p>A. このAPIはアンテナを全開にして周囲に飛んでいる電波をすべて拾うため、他人のワイヤレスイヤホンやスマートウォッチ、街中のIoT家電、忘れ物タグなどのBLE（Bluetooth Low
-                        Energy）電波がリストに大量に表示されることがあります。もちろんペアリング設定をしない限り接続・操作はできません。</p>
+                    <h3>Q. 非対応のAPIが多い</h3>
+                    <p>A. 正常です。Web Bluetooth / WebUSB / Web Serial / Web NFC / WebHID / Gamepad / Web MIDIなどはブラウザやOSによって対応状況が大きく異なります。この差を見ること自体がこのページの目的です。</p>
 
-                    <h3>Q. Web NFCでマイナンバーカードやSuicaをかざしても読取エラーになる</h3>
-                    <p>A. ブラウザのWeb NFC
-                        APIは、セキュリティ上の理由からシンプルにテキストが読み書きできる「NDEFフォーマット」のみに対応しています。マイナンバーカード（Type-B）やSuica（FeliCa）のような、専用コマンドで暗号通信を行う高度な規格のカードには、ブラウザからは直接アクセスできないようにOSレベルで厳格にブロックされています。
-                    </p>
+                    <h3>Q. Bluetoothで心当たりのないデバイスが表示される</h3>
+                    <p>A. BLE対応機器が周囲に多数ある場合があります。ブラウザはユーザーが選択したデバイスだけにアクセスを許可します。</p>
 
-                    <h3>Q. Web Serial API は何に使うもの？</h3>
-                    <p>A. Raspberry
-                        PiやArduinoなどの電子工作マイコンボード、通信モジュールなどをPCのUSBに接続し、コンソール（シリアル通信）としてテキストデータやコマンドを直接やり取りするためのプロ・ホビー特化APIです。
-                    </p>
+                    <h3>Q. Web NFCでSuicaやマイナンバーカードが読めない</h3>
+                    <p>A. Web NFCはNDEF形式を対象とします。SuicaのFeliCaやマイナンバーカードのような低レベルの専用通信をWeb NFCから直接読むことはできません。</p>
+
+                    <h3>Q. WebUSBは何が分かる？</h3>
+                    <p>A. 現在の実装ではデバイス選択と識別情報の確認が中心です。実際の転送には対象機器固有のconfiguration / interface / endpoint仕様が必要です。</p>
                 </div>
             </div>
         </div>
 
         <footer>
-            <p>ブラウザおよび各種デバイスAPIのテスト用に構築されています</p>
+            <p>ブラウザおよび各種外部デバイスAPIの診断用に構築されています</p>
         </footer>
     </div>
 
     <script src="./src/external.js?v=2"></script>
+    <script src="./src/external-diagnostics.js?v=1"></script>
 </body>
 
 </html>
