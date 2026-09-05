@@ -8,16 +8,22 @@ function vectorSensor(id, title, description, ctorName, unit) {
     async start(update, setState) {
       const sensor = new window[ctorName]({ frequency: 10 });
       this.state.sensor = sensor;
+      this.state.verified = false;
       sensor.addEventListener('reading', () => {
         update(`X: ${diagNumber(sensor.x)} ${unit}\nY: ${diagNumber(sensor.y)} ${unit}\nZ: ${diagNumber(sensor.z)} ${unit}\nTimestamp: ${diagNumber(sensor.timestamp, 0)} ms`);
+        if (!this.state.verified) {
+          this.state.verified = true;
+          setState('verified');
+        }
       });
       sensor.addEventListener('error', (event) => setState('error', event.error?.message || 'センサー読み取りエラー'));
       sensor.start();
-      update('開始済み (10 Hz)\nデータ待機中...');
+      setState('waiting', '開始済み (10 Hz)\n実データ待機中...');
     },
     async stop(update) {
       this.state.sensor?.stop();
       this.state.sensor = null;
+      this.state.verified = false;
       update('停止しました');
     }
   };
@@ -31,20 +37,54 @@ function orientationSensor(id, title, description, ctorName) {
     async start(update, setState) {
       const sensor = new window[ctorName]({ frequency: 10 });
       this.state.sensor = sensor;
+      this.state.verified = false;
       sensor.addEventListener('reading', () => {
         const q = sensor.quaternion;
-        update(q ? `Quaternion\nX: ${diagNumber(q[0], 4)}\nY: ${diagNumber(q[1], 4)}\nZ: ${diagNumber(q[2], 4)}\nW: ${diagNumber(q[3], 4)}` : 'データ待機中...');
+        update(q ? `Quaternion\nX: ${diagNumber(q[0], 4)}\nY: ${diagNumber(q[1], 4)}\nZ: ${diagNumber(q[2], 4)}\nW: ${diagNumber(q[3], 4)}` : '実データ待機中...');
+        if (q && !this.state.verified) {
+          this.state.verified = true;
+          setState('verified');
+        }
       });
       sensor.addEventListener('error', (event) => setState('error', event.error?.message || '姿勢センサー読み取りエラー'));
       sensor.start();
-      update('開始済み (10 Hz)\nデータ待機中...');
+      setState('waiting', '開始済み (10 Hz)\n実データ待機中...');
     },
     async stop(update) {
       this.state.sensor?.stop();
       this.state.sensor = null;
+      this.state.verified = false;
       update('停止しました');
     }
   };
+}
+
+function describeTrack(track) {
+  const settings = track.getSettings?.() || {};
+  const caps = track.getCapabilities?.() || {};
+  const lines = [
+    `label: ${track.label || '(名称なし)'}`,
+    `readyState: ${track.readyState}`,
+    `muted: ${track.muted ? 'はい' : 'いいえ'}`
+  ];
+
+  const settingKeys = ['deviceId', 'groupId', 'width', 'height', 'frameRate', 'facingMode', 'sampleRate', 'sampleSize', 'channelCount', 'echoCancellation', 'noiseSuppression', 'autoGainControl'];
+  const settingLines = settingKeys
+    .filter((key) => settings[key] !== undefined)
+    .map((key) => `${key}: ${settings[key]}`);
+  if (settingLines.length) lines.push(`[Settings]\n${settingLines.join('\n')}`);
+
+  const capabilityKeys = Object.keys(caps);
+  if (capabilityKeys.length) {
+    lines.push(`[Capabilities keys]\n${capabilityKeys.join(', ')}`);
+    ['width', 'height', 'frameRate', 'zoom', 'torch', 'focusMode', 'exposureMode', 'whiteBalanceMode', 'sampleRate', 'channelCount']
+      .filter((key) => caps[key] !== undefined)
+      .forEach((key) => lines.push(`${key}: ${JSON.stringify(caps[key])}`));
+  } else {
+    lines.push('getCapabilities(): 利用不可または公開情報なし');
+  }
+
+  return lines.join('\n');
 }
 
 const diagnosticSensors = [
@@ -61,57 +101,112 @@ const diagnosticSensors = [
     async start(update, setState) {
       const sensor = new AmbientLightSensor({ frequency: 2 });
       this.state.sensor = sensor;
-      sensor.addEventListener('reading', () => update(`照度: ${diagNumber(sensor.illuminance)} lux`));
+      this.state.verified = false;
+      sensor.addEventListener('reading', () => {
+        update(`照度: ${diagNumber(sensor.illuminance)} lux`);
+        if (!this.state.verified) {
+          this.state.verified = true;
+          setState('verified');
+        }
+      });
       sensor.addEventListener('error', (event) => setState('error', event.error?.message || '照度センサー読み取りエラー'));
       sensor.start();
-      update('開始済み\nデータ待機中...');
+      setState('waiting', '開始済み\n実データ待機中...');
     },
-    async stop(update) { this.state.sensor?.stop(); this.state.sensor = null; update('停止しました'); }
+    async stop(update) { this.state.sensor?.stop(); this.state.sensor = null; this.state.verified = false; update('停止しました'); }
   },
   {
-    id: 'screen-orientation', title: '画面方向 (Screen Orientation)', description: 'portrait / landscape と回転角を取得します。',
+    id: 'screen-orientation', title: '画面方向 (Screen Orientation)', description: 'portrait / landscape と回転角を実際に読み取り、回転にも追従します。',
     supported: () => !!screen.orientation, state: {},
-    async start(update) {
+    async start(update, setState) {
       const orientation = screen.orientation;
-      this.state.handler = () => update(`向き: ${orientation.type}\n角度: ${orientation.angle}°`);
+      this.state.handler = () => {
+        update(`向き: ${orientation.type}\n角度: ${orientation.angle}°\n\n端末を回転すると値が更新されます。`);
+        setState('verified');
+      };
       orientation.addEventListener('change', this.state.handler);
       this.state.handler();
     },
     async stop(update) { if (this.state.handler) screen.orientation.removeEventListener('change', this.state.handler); this.state.handler = null; update('停止しました'); }
   },
   {
-    id: 'device-posture', title: '折りたたみ状態 (Device Posture)', description: '折りたたみ端末の continuous / folded 状態を取得します。', experimental: true,
+    id: 'device-posture', title: '折りたたみ状態 (Device Posture)', description: '折りたたみ端末の continuous / folded 状態を実際に読み取ります。', experimental: true,
     supported: () => 'devicePosture' in navigator, state: {},
-    async start(update) {
+    async start(update, setState) {
       const posture = navigator.devicePosture;
-      this.state.handler = () => update(`端末姿勢: ${posture.type}`);
+      this.state.handler = () => {
+        update(`端末姿勢: ${posture.type}`);
+        setState('verified');
+      };
       posture.addEventListener('change', this.state.handler);
       this.state.handler();
     },
     async stop(update) { if (this.state.handler) navigator.devicePosture.removeEventListener('change', this.state.handler); this.state.handler = null; update('停止しました'); }
   },
   {
-    id: 'touch-capability', title: 'タッチ能力', description: '最大同時タッチ数とTouch/Pointer APIの公開状況を表示します。',
+    id: 'touch-capability', title: 'タッチ能力', description: '最大同時タッチ数とTouch/Pointer APIの公開状況を取得します。', oneShot: true,
     supported: () => 'maxTouchPoints' in navigator,
-    async start(update) { update(`最大同時タッチ数: ${navigator.maxTouchPoints}\nTouchEvent: ${'TouchEvent' in window ? '対応' : '非対応'}\nPointerEvent: ${'PointerEvent' in window ? '対応' : '非対応'}`); },
+    async start(update, setState) {
+      update(`最大同時タッチ数: ${navigator.maxTouchPoints}\nTouchEvent: ${'TouchEvent' in window ? '対応' : '非対応'}\nPointerEvent: ${'PointerEvent' in window ? '対応' : '非対応'}\n\n実際の座標・筆圧は「ポインター＆タッチ」で試せます。`);
+      setState('verified');
+    },
     async stop(update) { update('停止しました'); }
   },
   {
-    id: 'media-devices', title: 'カメラ / マイク一覧・能力', description: 'enumerateDevices()とInputDeviceInfo.getCapabilities()の公開状況を確認します。',
-    supported: () => !!navigator.mediaDevices?.enumerateDevices,
-    async start(update) {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const counts = devices.reduce((acc, d) => { acc[d.kind] = (acc[d.kind] || 0) + 1; return acc; }, {});
-      const rows = devices.map((device, index) => {
-        let capabilities = '非対応';
-        if (typeof device.getCapabilities === 'function') {
-          const caps = device.getCapabilities();
-          const keys = Object.keys(caps);
-          capabilities = keys.length ? keys.join(', ') : '利用可（権限付与前などは空）';
+    id: 'media-devices', title: 'カメラ / マイク実機診断', description: 'カメラとマイクを実際に一時起動し、Settings / Capabilitiesとデバイス一覧を確認してすぐ停止します。', oneShot: true,
+    supported: () => !!(navigator.mediaDevices?.getUserMedia && navigator.mediaDevices?.enumerateDevices),
+    async start(update, setState) {
+      const sections = [];
+      let successCount = 0;
+
+      const probe = async (kind) => {
+        let stream = null;
+        const label = kind === 'video' ? 'カメラ' : 'マイク';
+        try {
+          update(`${label}の権限と実機動作を確認中...`);
+          stream = await navigator.mediaDevices.getUserMedia(kind === 'video'
+            ? { video: { facingMode: { ideal: 'environment' } }, audio: false }
+            : { video: false, audio: true });
+          const track = kind === 'video' ? stream.getVideoTracks()[0] : stream.getAudioTracks()[0];
+          if (!track) throw new DOMException(`${label}トラックを取得できませんでした`, 'NotFoundError');
+          successCount += 1;
+          sections.push(`【${label}: 実動作成功】\n${describeTrack(track)}`);
+        } catch (error) {
+          sections.push(`【${label}: 取得失敗】\n${error.name || 'Error'}: ${error.message || String(error)}`);
+        } finally {
+          stream?.getTracks().forEach((track) => track.stop());
         }
-        return `${index + 1}. ${device.kind}\n   label: ${device.label || '(権限付与前は非表示の場合あり)'}\n   getCapabilities: ${capabilities}`;
-      });
-      update(`videoinput: ${counts.videoinput || 0}\naudioinput: ${counts.audioinput || 0}\naudiooutput: ${counts.audiooutput || 0}\n\n${rows.join('\n\n') || 'デバイスなし'}`);
+      };
+
+      await probe('video');
+      await probe('audio');
+
+      let devices = [];
+      try {
+        devices = await navigator.mediaDevices.enumerateDevices();
+        const counts = devices.reduce((acc, device) => {
+          acc[device.kind] = (acc[device.kind] || 0) + 1;
+          return acc;
+        }, {});
+        const rows = devices.map((device, index) => {
+          const capabilityKeys = typeof device.getCapabilities === 'function'
+            ? Object.keys(device.getCapabilities())
+            : [];
+          return `${index + 1}. ${device.kind}\n   label: ${device.label || '(名称非公開)'}\n   capabilities: ${capabilityKeys.length ? capabilityKeys.join(', ') : '公開なし'}`;
+        });
+        sections.push(`【デバイス列挙】\nvideoinput: ${counts.videoinput || 0}\naudioinput: ${counts.audioinput || 0}\naudiooutput: ${counts.audiooutput || 0}\n\n${rows.join('\n\n') || 'デバイスなし'}`);
+      } catch (error) {
+        sections.push(`【デバイス列挙失敗】\n${error.name || 'Error'}: ${error.message || String(error)}`);
+      }
+
+      update(sections.join('\n\n'));
+      if (successCount === 2) {
+        setState('verified');
+      } else if (successCount === 1) {
+        setState('partial');
+      } else {
+        setState('blocked');
+      }
     },
     async stop(update) { update('停止しました'); }
   }
@@ -130,33 +225,95 @@ function renderDiagnosticCard(sensor, container) {
   const desc = document.createElement('div'); desc.className = 'card-desc'; desc.textContent = sensor.description;
   heading.append(title, desc);
   if (sensor.experimental) { const tag = document.createElement('span'); tag.className = 'experimental-flag'; tag.textContent = '実験的 / 限定対応'; heading.appendChild(tag); }
-  const badge = document.createElement('div'); badge.className = 'status-badge'; badge.textContent = supported ? 'API対応' : 'ブラウザ非対応';
+  const badge = document.createElement('div'); badge.className = 'status-badge'; badge.textContent = supported ? 'API対応・未確認' : 'ブラウザ非対応';
   header.append(heading, badge);
 
   const content = document.createElement('div'); content.className = 'card-content';
-  const pre = document.createElement('pre'); pre.textContent = supported ? 'APIを検出しました。開始すると実データ取得を試します。' : 'このブラウザではAPIの入口が公開されていません。\nこれは正常な診断結果です。';
+  const pre = document.createElement('pre'); pre.textContent = supported ? 'APIを検出しました。開始すると実データ取得まで試します。' : 'このブラウザではAPIの入口が公開されていません。\nこれは正常な診断結果です。';
   content.appendChild(pre);
-  const button = document.createElement('button'); button.className = 'btn'; button.textContent = supported ? '開始 / 取得' : '非対応'; button.disabled = !supported;
-  let running = false; let busy = false;
+  const button = document.createElement('button'); button.className = 'btn'; button.textContent = supported ? '動作確認' : '非対応'; button.disabled = !supported;
+  let running = false;
+  let busy = false;
+  let transitioned = false;
   const update = (text) => { pre.textContent = text; };
-  const setState = (state, message) => { if (message) update(message); if (state === 'error') { running = false; card.classList.remove('active'); badge.textContent = '取得エラー'; button.textContent = '再試行'; } };
+  const setState = (state, message) => {
+    transitioned = true;
+    if (message) update(message);
+    if (state === 'waiting') {
+      running = true;
+      card.classList.add('active');
+      badge.textContent = 'データ待ち';
+      button.textContent = '停止';
+    } else if (state === 'verified') {
+      badge.textContent = '動作確認済';
+      if (sensor.oneShot) {
+        running = false;
+        card.classList.remove('active');
+        button.textContent = '再実行';
+      } else {
+        running = true;
+        card.classList.add('active');
+        button.textContent = '停止';
+      }
+    } else if (state === 'partial') {
+      running = false;
+      card.classList.remove('active');
+      badge.textContent = '一部確認';
+      button.textContent = '再実行';
+    } else if (state === 'blocked') {
+      running = false;
+      card.classList.remove('active');
+      badge.textContent = '取得不可';
+      button.textContent = '再試行';
+    } else if (state === 'error') {
+      running = false;
+      card.classList.remove('active');
+      badge.textContent = '取得エラー';
+      button.textContent = '再試行';
+    }
+  };
 
   button.addEventListener('click', async () => {
     if (!supported || busy) return;
-    busy = true; button.disabled = true;
+    busy = true;
+    button.disabled = true;
+    transitioned = false;
     try {
-      if (running) {
-        await sensor.stop(update); running = false; card.classList.remove('active'); badge.textContent = 'API対応'; button.textContent = '開始 / 取得';
+      if (running && !sensor.oneShot) {
+        await sensor.stop(update);
+        running = false;
+        card.classList.remove('active');
+        badge.textContent = 'API対応・未確認';
+        button.textContent = '動作確認';
       } else {
-        badge.textContent = '開始中'; await sensor.start(update, setState); running = true; card.classList.add('active'); badge.textContent = '取得中'; button.textContent = '停止';
+        badge.textContent = '確認中';
+        await sensor.start(update, setState);
+        if (!transitioned) {
+          if (sensor.oneShot) {
+            badge.textContent = '動作確認済';
+            button.textContent = '再実行';
+          } else {
+            running = true;
+            card.classList.add('active');
+            badge.textContent = '動作中';
+            button.textContent = '停止';
+          }
+        }
       }
     } catch (error) {
-      running = false; card.classList.remove('active'); badge.textContent = '取得エラー'; button.textContent = '再試行';
+      running = false;
+      card.classList.remove('active');
+      badge.textContent = '取得エラー';
+      button.textContent = '再試行';
       update(`${error.name || 'Error'}: ${error.message || String(error)}\n\nAPIは存在しますが、権限・HTTPS・端末ハードウェア・ブラウザポリシー等により取得できませんでした。`);
-    } finally { busy = false; button.disabled = false; }
+    } finally {
+      busy = false;
+      button.disabled = false;
+    }
   });
 
-  card.append(header, content, button); container.appendChild(card);
+  card.append(header, content, button);
+  container.appendChild(card);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -167,5 +324,5 @@ window.addEventListener('DOMContentLoaded', () => {
   const cards = Array.from(container.querySelectorAll('.card'));
   const unsupported = cards.filter((card) => card.classList.contains('unsupported')).length;
   const summary = document.getElementById('capability-summary');
-  if (summary) summary.innerHTML = `<strong>${cards.length - unsupported} / ${cards.length}</strong> 項目でAPI入口を検出 <span>非対応: ${unsupported}</span><small>「非対応」もこの端末・ブラウザの診断結果です。APIが存在しても権限・HTTPS・端末ハードウェア等で実データ取得に失敗する場合があります。</small>`;
+  if (summary) summary.innerHTML = `<strong>${cards.length - unsupported} / ${cards.length}</strong> 項目でAPI入口を検出 <span>非対応: ${unsupported}</span><small>「API対応」は入口の検出、「動作確認済」は実データ取得成功です。非対応や取得不可もこの端末・ブラウザの診断結果です。</small>`;
 });
