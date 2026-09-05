@@ -88,13 +88,14 @@ python3 -m http.server 8000
 
 ## デプロイ
 
-`main` へのpushまたはGitHub Actionsの手動実行で、Cloudflare PagesへDirect Uploadします。
+`main` へのpushまたはGitHub Actionsの手動実行で、既存のCloudflare PagesプロジェクトへDirect Uploadします。GitHub Pagesはデプロイ先として使用しません。
 
+- Production: `https://sensors.shinp-studio.com/`
 - Pages project: `browser-sensors`
 - Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 - 公開対象: `index.html`, `external.html`, `src/`, `assets/`
 
-Pages projectが存在しない場合はworkflow内で自動作成します。
+Cloudflare PagesプロジェクトとカスタムドメインはCloudflare側で管理し、workflowは既存プロジェクトへのデプロイだけを行います。
 
 ## プライバシー
 
