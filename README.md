@@ -1,14 +1,20 @@
 # Browser Sensor Lab
 
+<p align="center">
+  <img src="assets/icon.webp" alt="Browser Sensor Lab icon" width="180">
+</p>
+
 ブラウザや端末がWebへ公開しているセンサー / ハードウェアAPIを診断する静的Webアプリです。
 
 「対応APIだけを試すデモ」ではなく、**この端末 × このブラウザで何が見える／見えないか**を確認することを目的にしています。APIが存在しない場合も `ブラウザ非対応` として表示し、それ自体を診断結果として扱います。
 
 基本方針は、**相手となる外部機器が不要なAPIは、存在確認だけで終わらせず可能な範囲で実データ取得まで試す**ことです。Bluetooth / USB / Serial / NFC / HID / MIDI / Gamepadなど、相手となる機器が必要なAPIは「APIの有無」と「実機で動作したか」を分けて扱います。
 
-## 主な診断対象
+## 対象範囲
 
-### 本体センサー / 端末情報
+追加ライブラリやAIモデルで二次解析した結果ではなく、**ブラウザ / OS がWeb APIとして直接公開する端末能力**を診断対象にします。
+
+### 本体センサー
 
 - Geolocation
 - DeviceOrientationEvent / DeviceMotionEvent
@@ -21,15 +27,18 @@
   - AbsoluteOrientationSensor
   - RelativeOrientationSensor
   - AmbientLightSensor
-- Screen Orientation
-- Device Posture（折りたたみ端末）
-- Pointer / Touch / maxTouchPoints
+- Device Posture
+
+### 端末能力
+
 - Camera / Microphone
 - MediaDevices.enumerateDevices()
 - MediaStreamTrack.getSettings() / getCapabilities()
+- Pointer / Touch / maxTouchPoints
+- Screen / Screen Orientation
 - Battery Status
 - Network Information
-- Hardware / Screen information
+- Hardware information
 - Vibration
 - Screen Wake Lock
 - Speech Recognition
@@ -44,6 +53,10 @@
 - WebHID
 - Gamepad API
 - Web MIDI
+
+### 対象外
+
+MediaPipe、TensorFlow.js、ONNX Runtime Webなど、追加ライブラリやAIモデルを使ってカメラ映像やセンサーデータを二次解析して得る機能は対象外です。
 
 ## 表示の考え方
 
@@ -72,6 +85,16 @@ python3 -m http.server 8000
 ```
 
 `http://localhost:8000/` をブラウザで開いてください。
+
+## デプロイ
+
+`main` へのpushまたはGitHub Actionsの手動実行で、Cloudflare PagesへDirect Uploadします。
+
+- Pages project: `browser-sensors`
+- Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+- 公開対象: `index.html`, `external.html`, `src/`, `assets/`
+
+Pages projectが存在しない場合はworkflow内で自動作成します。
 
 ## プライバシー
 
